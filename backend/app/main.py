@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 import shutil
-import cv2
+from app.detector import detect_fake
 
 app = FastAPI()
 
@@ -20,13 +20,10 @@ async def upload_image(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    image = cv2.imread(file_path)
-
-    height, width = image.shape[:2]
+    result = detect_fake(file_path)
 
     return {
         "filename": file.filename,
-        "height": height,
-        "width": width,
-        "status": "processed"
+        "prediction": result["prediction"],
+        "confidence": result["confidence"]
     }
