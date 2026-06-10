@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
-from app.detector import detect_fake
+from app.detectors.image.detector import detect_fake
 
 app = FastAPI()
 app.add_middleware(
