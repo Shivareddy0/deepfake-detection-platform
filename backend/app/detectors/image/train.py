@@ -1,48 +1,219 @@
-import os
-import cv2
-import joblib
-import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
-from sklearn.svm import SVC
+from torchvision import datasets
+from torchvision import transforms
+from torchvision import models
 
-
-real_path = "dataset/real"
-fake_path = "dataset/fake"
-
-X = []
-y = []
+from torch.utils.data import DataLoader
 
 
-def process(folder, label):
+transform = transforms.Compose([
 
-    for img_name in os.listdir(folder):
+    transforms.Resize((224,224)),
 
-        img_path = os.path.join(folder, img_name)
+    transforms.RandomHorizontalFlip(),
 
-        img = cv2.imread(img_path)
+    transforms.ColorJitter(
+        brightness=0.2
+    ),
 
-        if img is None:
-            continue
+    transforms.ToTensor(),
 
-        img = cv2.resize(img, (100, 100))
+    transforms.Normalize(
+        mean=[0.485,0.456,0.406],
+        std=[0.229,0.224,0.225]
+    )
 
-        img = img.flatten()
-
-        X.append(img)
-
-        y.append(label)
+])
 
 
-process(real_path, 0)
-process(fake_path, 1)
+train_data = datasets.ImageFolder(
 
-X = np.array(X)
+"app/detectors/image/dataset/train",
 
-model = SVC()
+transform=transform
 
-model.fit(X, y)
+)
+print(train_data.class_to_idx)
 
-joblib.dump(model, "models/deepfake_model.pkl")
+test_data = datasets.ImageFolder(
 
-print("Training Completed")
-print("Images:", len(X))
+"app/detectors/image/dataset/test",
+
+transform=transform
+
+)
+
+
+train_loader = DataLoader(
+
+train_data,
+
+batch_size=32,
+
+shuffle=True
+
+)
+
+test_loader = DataLoader(
+
+test_data,
+
+batch_size=32
+
+)
+
+
+
+model = models.efficientnet_b0(
+
+weights="DEFAULT"
+
+)
+
+
+model.classifier = nn.Sequential(
+
+nn.Dropout(
+0.5
+),
+
+nn.Linear(
+1280,
+256
+),
+
+nn.ReLU(),
+
+nn.Dropout(
+0.3
+),
+
+nn.Linear(
+256,
+2
+)
+
+)
+
+
+
+device = (
+
+"cuda"
+
+if
+
+torch.cuda.is_available()
+
+else
+
+"cpu"
+
+)
+
+model.to(device)
+
+
+
+loss_fn = nn.CrossEntropyLoss()
+
+optimizer = optim.Adam(
+
+model.parameters(),
+
+lr=0.00005,
+
+weight_decay=0.001
+
+)
+
+
+
+for epoch in range(6):
+
+
+    model.train()
+
+    correct = 0
+
+    total = 0
+
+
+    for images,labels in train_loader:
+
+
+        images = images.to(device)
+
+        labels = labels.to(device)
+
+
+        output = model(
+
+            images
+
+        )
+
+
+        loss = loss_fn(
+
+            output,
+
+            labels
+
+        )
+
+
+        optimizer.zero_grad()
+
+        loss.backward()
+
+        optimizer.step()
+
+
+        predicted = output.argmax(1)
+
+
+        correct += (
+
+            predicted==labels
+
+        ).sum().item()
+
+
+        total += labels.size(0)
+
+
+
+    print(
+
+        f"Epoch {epoch+1}"
+
+    )
+
+
+
+    print(
+
+        f"Accuracy {(correct/total)*100:.2f}%"
+
+    )
+
+
+
+torch.save(
+
+model.state_dict(),
+
+"app/detectors/image/image_model.pth"
+
+)
+
+
+print(
+
+"Model Saved"
+
+)

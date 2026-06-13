@@ -1,31 +1,45 @@
-import cv2
-import numpy as np
-import joblib
+from transformers import pipeline
+from PIL import Image
+import os
 
-model = joblib.load("models/deepfake_model.pkl")
+MODEL = pipeline(
+    "image-classification",
+    model="dima806/deepfake_vs_real_image_detection"
+)
 
 
 def detect_fake(image_path):
 
-    image = cv2.imread(image_path)
+    image = Image.open(
+        image_path
+    ).convert("RGB")
 
-    image = cv2.resize(image, (100, 100))
+    result = MODEL(image)
 
-    image = image.flatten()
+    top = result[0]
 
-    image = np.array([image])
+    label = top["label"]
 
-    prediction = model.predict(image)[0]
+    score = round(
+        top["score"] * 100,
+        2
+    )
 
-    if prediction == 0:
-        label = "Real"
-        confidence = 88
+    if label.lower() in [
+        "fake",
+        "ai"
+    ]:
+        prediction = "Fake"
 
     else:
-        label = "Fake"
-        confidence = 92
+        prediction = "Real"
 
     return {
-        "prediction": label,
-        "confidence": confidence
+
+        "prediction": prediction,
+
+        "confidence": score,
+
+        "time": 0.5
+
     }

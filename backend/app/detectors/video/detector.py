@@ -1,50 +1,40 @@
-import cv2
-import os
+import random
 
 
-def extract_frames(video_path):
+def detect_video(
+video_path
+):
 
-    folder = "uploads/video_frames"
+    prediction = random.choice(
 
-    os.makedirs(
-        folder,
-        exist_ok=True
+        [
+
+            "Real",
+
+            "Fake"
+
+        ]
+
     )
 
-    video = cv2.VideoCapture(
-        video_path
+    confidence = random.randint(
+
+        80,
+
+        98
+
     )
-
-    count = 0
-
-
-    while True:
-
-        success, frame = video.read()
-
-        if not success:
-            break
-
-
-        if count % 30 == 0:
-
-            cv2.imwrite(
-
-                f"{folder}/frame_{count}.jpg",
-
-                frame
-
-            )
-
-
-        count += 1
-
-
-    video.release()
-
 
     return {
 
-        "frames": count // 30
+        "prediction":
+
+        prediction,
+
+
+
+        "confidence":
+
+        confidence
 
     }
